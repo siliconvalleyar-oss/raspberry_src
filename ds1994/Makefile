@@ -1,32 +1,30 @@
-CXX       ?= g++
-CXXFLAGS  ?= -std=c++17 -Wall -Wextra -pedantic -pthread
-SRCDIR    := src_deepseek
-OBJDIR    := obj
-BINDIR    := bin
-SRCS      := $(SRCDIR)/main.cpp
-OBJS      := $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
-TARGET    := $(BINDIR)/ds1994_app
+CXX = g++
+CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -g -pthread
+INCLUDES = -Iinclude
+SRC_DIR = src
+OBJ_DIR = obj
+BIN_DIR = bin
+SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
+OBJECTS = $(SOURCES:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+TARGET = $(BIN_DIR)/ds1994_app
 
 .PHONY: all clean run
 
-all: directories $(TARGET)
+all: $(TARGET)
 
-$(TARGET): $(OBJS) | $(BINDIR)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+$(TARGET): $(OBJECTS) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) $^ -o $@
+	@echo "✅ Compilación exitosa"
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR)
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-directories: $(OBJDIR) $(BINDIR)
-
-$(OBJDIR):
-	mkdir -p $(OBJDIR)
-
-$(BINDIR):
-	mkdir -p $(BINDIR)
+$(BIN_DIR) $(OBJ_DIR):
+	mkdir -p $@
 
 run: $(TARGET)
 	sudo $(TARGET)
 
 clean:
-	rm -rf $(OBJDIR) $(TARGET)
+	rm -rf $(OBJ_DIR)/*.o $(TARGET)
+	@echo "🧹 Limpieza completada"
