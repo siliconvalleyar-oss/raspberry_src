@@ -1,0 +1,25 @@
+# Build outputs
+bin/
+obj/
+*.o
+*.o.d
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Temp
+*~
+*.tar.gz
+*.zip
+
+# Logs
+logs/
+*.log
+
+# Config local
+.env
