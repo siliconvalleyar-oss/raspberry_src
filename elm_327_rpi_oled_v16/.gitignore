@@ -1,0 +1,13 @@
+bin/
+obj/
+*.o
+*.o.d
+.vscode/
+.DS_Store
+*.swp
+*~
+.env
+config/pids.json
+config/*.csv
+logs/
+*.log

@@ -1,0 +1,9 @@
+build/
+bin/
+*.o
+*.o.d
+*.swp
+*.swo
+*~
+logs/
+.DS_Store

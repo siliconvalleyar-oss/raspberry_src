@@ -1,0 +1,23 @@
+# Build
+bin/
+obj/
+*.o
+*.o.d
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Temp
+*.log
+*.tar.gz
+*.zip
+valgrind_log.txt
+
+# Config local
+.env

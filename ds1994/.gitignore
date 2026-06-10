@@ -1,0 +1,13 @@
+build/
+bin/
+obj/
+*.o
+ds1994_app
+*.o.d
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~
+*.log

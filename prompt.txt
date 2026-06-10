@@ -1,0 +1,5 @@
+entra a cadaproyecto y uno por uno hacer lo siguiente
+
+ordenar este proyecto $pwd crear un makefile una carpeta scripts donde se genere un bash para instalar las dependencias
+
+
