@@ -1,17 +1,25 @@
+# Build
+bin/
+obj/
 *.o
-*.obj
-*.exe
-*.out
-*.a
-*.so
-*.dylib
-*.dll
-*.swp
-*.swo
-*~
+*.o.d
+
+# IDE / OS
 .vscode/
 .idea/
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Temp
 *.log
-obj/
-bin/
+*.tar.gz
+*.zip
+
+# Assets generated
+assets/
+
+# Config local
+.env

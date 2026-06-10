@@ -5,24 +5,12 @@
 #include <stdlib.h>
 
 // ==================== PINES BCM ====================
-//#define ADAFRUIT_BONNET
-
-#if defined(ADAFRUIT_BONNET)
-#define PIN_MOSI      10
-#define PIN_SCLK      11
-#define PIN_DC        25
-#define PIN_RST       24
-#define PIN_BL        23
-#define PIN_SOUND     12
-#else
-// ==================== PINES BCM ====================
-#define PIN_MOSI   10   // SPI0 MOSI  (pin físico 19)
-#define PIN_SCLK   11   // SPI0 SCLK  (pin físico 23)
-#define PIN_DC     21   // D/C        (pin físico 22)
-#define PIN_RST    16   // RESET      (pin físico 18)
-#define PIN_BL     20   // Backlight  (pin físico 16)
-#define PIN_SOUND  13   // Buzzer     (pin físico 32)
-#endif
+#define PIN_MOSI   10
+#define PIN_SCLK   11
+#define PIN_DC     25
+#define PIN_RST    24
+#define PIN_BL     23
+#define PIN_SOUND  12
 
 // Botones (no usados)
 // #define USE_BUTTONS

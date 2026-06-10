@@ -1,10 +1,7 @@
 // ============================================================
 //  main_dino.cpp — Chrome Dino Arcade / RPi Zero 2W
-//  Capa de hardware: /dev/spidev0.0 + /dev/gpiochip0 +
-//  entrada unificada GPIO+teclado + bit-bang sound.
-//
-//  Compilar: make
-//  Ejecutar: sudo ./bin/dino
+//  Capa de hardware identica al Pac-Man que funciono:
+//  /dev/spidev0.0 + /dev/gpiochip0 + Sound GPIO bit-bang.
 // ============================================================
 
 #include "DinoHardware.h"
@@ -28,19 +25,22 @@
 // ============================================================
 //  ESTADO GLOBAL DE HARDWARE
 // ============================================================
-static int spi_fd       = -1;
+static int spi_fd      = -1;
 static int gpio_chip_fd = -1;
-static int gpio_out_fd  = -1;
-static int gpio_btn_fd  = -1;
+static int gpio_out_fd = -1;   // DC, RST, BL
+static int gpio_btn_fd = -1;   // JUMP, COLOR
 
+// 3 pines de salida: DC=0, RST=1, BL=2
 #define N_OUT 3
 static const uint32_t out_pins[N_OUT] = { PIN_DC, PIN_RST, PIN_BL };
 static uint8_t        pin_state[N_OUT] = { 0, 1, 0 };
 
+// 2 pines de entrada: JUMP=0, COLOR=1
 #define N_BTN 2
 static const uint32_t btn_pins[N_BTN] = { BTN_JUMP_PIN, BTN_COLOR_PIN };
 
 static struct termios orig_termios;
+
 
 // ============================================================
 //  GPIO
@@ -49,6 +49,7 @@ static int gpio_init(void) {
     gpio_chip_fd = open(GPIO_CHIP, O_RDONLY);
     if(gpio_chip_fd < 0) { perror("open gpiochip0"); return -1; }
 
+    // Salidas: DC, RST, BL
     struct gpiohandle_request req;
     memset(&req, 0, sizeof(req));
     req.flags = GPIOHANDLE_REQUEST_OUTPUT;
@@ -63,6 +64,7 @@ static int gpio_init(void) {
     }
     gpio_out_fd = req.fd;
 
+    // Entradas: botones con pull-up interno
     memset(&req, 0, sizeof(req));
     req.flags = GPIOHANDLE_REQUEST_INPUT;
     req.lines = N_BTN;
@@ -86,7 +88,7 @@ void gpio_write(int pin, int val) {
 }
 
 int gpio_read(int pin) {
-    if(gpio_btn_fd < 0) return 1;
+    if(gpio_btn_fd < 0) return 1; // pull-up → no presionado
     int idx = -1;
     for(int i=0;i<N_BTN;i++) if((int)btn_pins[i]==pin){ idx=i; break; }
     if(idx < 0) return 1;
@@ -119,8 +121,8 @@ static int spi_init_dev(void) {
 void spi_write_byte(uint8_t d) {
     struct spi_ioc_transfer tr;
     memset(&tr, 0, sizeof(tr));
-    tr.tx_buf        = (unsigned long)&d;
-    tr.len           = 1;
+    tr.tx_buf = (unsigned long)&d;
+    tr.len    = 1;
     tr.speed_hz      = SPI_SPEED_HZ;
     tr.bits_per_word = 8;
     ioctl(spi_fd, SPI_IOC_MESSAGE(1), &tr);
@@ -246,9 +248,12 @@ int hw_init(void){
     return 0;
 }
 
-// ============================================================
-//  TECLADO (modo no canonico, sin echo)
-// ============================================================
+
+
+
+
+
+
 static int stdin_ready(void) {
     struct timeval tv = {0, 0};
     fd_set fds;
@@ -258,9 +263,9 @@ static int stdin_ready(void) {
 }
 
 static int getch_nonblock(void) {
-    if(!stdin_ready()) return -1;
+    if (!stdin_ready()) return -1;
     char c;
-    if(read(STDIN_FILENO, &c, 1) != 1) return -1;
+    if (read(STDIN_FILENO, &c, 1) != 1) return -1;
     return c;
 }
 
@@ -269,7 +274,7 @@ void keyboard_init(void) {
     tcgetattr(STDIN_FILENO, &orig_termios);
     new_termios = orig_termios;
     new_termios.c_lflag &= ~(ICANON | ECHO);
-    new_termios.c_cc[VMIN]  = 0;
+    new_termios.c_cc[VMIN] = 0;
     new_termios.c_cc[VTIME] = 0;
     tcsetattr(STDIN_FILENO, TCSANOW, &new_termios);
 }
@@ -278,48 +283,42 @@ void keyboard_restore(void) {
     tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
 }
 
-// ============================================================
-//  LECTURA DE BOTONES UNIFICADA (GPIO + teclado)
-//  Se llama desde las macros BTN_JUMP / BTN_COLOR
-// ============================================================
-int dino_read_btn(int pin) {
-    // Intentar GPIO primero
-    int gpio_val = gpio_read(pin);
-    if(gpio_val == 0) return 1;  // activo bajo = presionado
-
-    // Fallback a teclado
+// Nuevas funciones que usan las macros
+int keyboard_jump(void) {
     int c = getch_nonblock();
-    if(pin == BTN_JUMP_PIN)
-        return (c == ' ' || c == 'w' || c == 'W' || c == 0x41);
-    if(pin == BTN_COLOR_PIN)
-        return (c == 'c' || c == 'C');
-    return 0;
+    return (c == ' ' || c == 'w' || c == 'W' || c == 0x41 /* flecha arriba */);
 }
 
+int keyboard_color(void) {
+    int c = getch_nonblock();
+    return (c == 'c' || c == 'C');
+}
 // ============================================================
 //  MAIN
 // ============================================================
 int main(void){
-    fprintf(stderr, "=== CHROME DINO ARCADE — RPi Zero 2W (teclado consola) ===\n");
-    keyboard_init();
-
+    //fprintf(stderr,"=== CHROME DINO ARCADE — RPi Zero 2W ===\n");
+    fprintf(stderr,"=== CHROME DINO ARCADE — RPi Zero 2W (teclado consola) ===\n");
+         keyboard_init();      //new line
     if(hw_init() < 0){
-        fprintf(stderr, "ERROR hw_init.\n"
-                        "  1) sudo ./bin/dino\n"
-                        "  2) dtparam=spi=on en /boot/firmware/config.txt\n");
+        fprintf(stderr,
+            "ERROR hw_init.\n"
+            "  1) sudo ./dino\n"
+            "  2) dtparam=spi=on en /boot/firmware/config.txt\n");
         return 1;
     }
+
+  
 
     init_display();
     delay_ms(50);
     BL_HIGH();
-    fprintf(stderr, "Backlight ON\n");
+    fprintf(stderr,"Backlight ON\n");
 
     srand((unsigned)time(nullptr));
     dino_sound_init();
     dino_game_loop();
 
     hw_close();
-    keyboard_restore();
     return 0;
 }

@@ -1,83 +1,46 @@
-# GSM SIM800 — Control de módulo GSM para Raspberry Pi
+# SIM800 GSM Module — Raspberry Pi
 
-Control y comunicación con el **módulo GSM SIM800/SIM800L** desde una
-Raspberry Pi mediante comandos AT por puerto serie.
+Control a SIM800/SIM800L GSM module over serial (`/dev/serial0`) from a Raspberry Pi.
 
-## Descripción
+## Programs
 
-El proyecto incluye dos enfoques:
+| Binary | Source | Description |
+|--------|--------|-------------|
+| `sms_send` | `src/sms_send.cpp` | Send an SMS in text mode |
+| `call` | `src/call.cpp` | Initiate a voice call, wait, hang up |
+| `call_dtmf` | `src/call_dtmf.cpp` | Call with DTMF detection (5=time, 3=hangup) |
 
-### Bash (`sim800Bash/`)
-Scripts shell para operaciones básicas:
-
-- **sim800_init.sh** — Inicialización del módulo (AT+CFUN, AT+CPIN, AT+CMGF)
-- **sim800_call.sh** — Realizar una llamada de voz
-- **sim800_send_msj.sh** — Enviar un SMS en modo texto
-
-### C++ (`sim800Cpp/`)
-Programas de demostración para funcionalidades avanzadas:
-
-- **main.cc** — Llamada con detección de tonos DTMF y respuesta horaria
-- **single_call_sim800/sim800.cc** — Envío de SMS
-- **dtmf_tone_01/** — Llamada + DTMF con respuesta horaria
-- **dtmf_02/** — Llamada + DTMF con timeout
-- **dtmf_singgle/** — Detección DTMF básica
-- **detect_tone_dtmf/** — Detección DTMF línea por línea
-- **dtmf_tone_file_03/** — Llamada + DTMF con depuración
-- **olds_sim800/** — Versiones anteriores
-
-## Cableado
-
-```
-Raspberry Pi              SIM800L
-============              =======
-GPIO 14 (TXD)  ────────  RXD
-GPIO 15 (RXD)  ────────  TXD
-GND            ────────  GND
-```
-
-Puerto serie: `/dev/serial0` (9600 baudios, 8N1)
-
-## Dependencias
+## Build
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y build-essential
+cd gsm
+make -j4
 ```
 
-UART debe estar habilitada en la RPi:
-```bash
-# En config.txt añadir:
-# enable_uart=1
-# dtoverlay=disable-bt
-```
-
-## Compilación
+## Run
 
 ```bash
-# main.cc (llamada + DTMF)
-g++ -o sim800_main sim800Cpp/main.cc
-
-# Envío de SMS
-g++ -o sim800_sms sim800Cpp/single_call_sim800/sim800.cc
-
-# DTMF tone
-g++ -o sim800_dtmf sim800Cpp/dtmf_tone_01/sim800_dtmf_tone_date.cc
+sudo make run-sms    # Send SMS
+sudo make run-call   # Simple call
+sudo make run-dtmf   # Call with DTMF
 ```
 
-## Ejecución
+## Bash Utilities
+
+| Script | Description |
+|--------|-------------|
+| `scripts/sim800_init.sh` | Reset module, check SIM, set SMS text mode |
+| `scripts/sim800_call.sh` | Place a voice call |
+| `scripts/sim800_send_msj.sh` | Send an SMS |
+
+## Hardware
+
+- **UART**: `/dev/serial0` (GPIO14 TX → SIM RX, GPIO15 RX ← SIM TX)
+- **Baud**: 9600 8N1
+- **Power**: SIM800 needs 2A peak — use external supply, not RPi 3.3V
+
+## Dependencies
 
 ```bash
-# Scripts Bash
-sudo ./sim800Bash/sim800_init.sh
-sudo ./sim800Bash/sim800_call.sh
-sudo ./sim800Bash/sim800_send_msj.sh
-
-# Programas C++
-sudo ./sim800_main
+sudo apt-get install minicom picocom
 ```
-
-## Controles
-
-- Llamada: el programa marca el número configurado
-- DTMF: tono `5` → muestra la hora; tono `3` → finaliza la llamada

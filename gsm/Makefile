@@ -1,50 +1,44 @@
-TARGETS = sim800_main sim800_sms sim800_dtmf_tone \
-          sim800_dtmf_02 sim800_dtmf_single \
-          sim800_dtmf_detect sim800_dtmf_file_03 sim800_dtmf_old
+CXX      = g++
+CXXFLAGS = -Wall -std=c++11 -Iinclude
+LDFLAGS  =
 
-CC = g++
-CFLAGS = -Wall -std=c++11
-BINDIR = bin
+SRCDIR   = src
+INCDIR   = include
+OBJDIR   = obj
+BINDIR   = bin
 
-.PHONY: all clean
+LIBSRC   = $(SRCDIR)/sim800.cpp
+LIBOBJ   = $(OBJDIR)/sim800.o
 
-all: $(BINDIR) $(TARGETS)
+TARGETS  = sms_send call_dtmf call
 
-$(BINDIR):
-	mkdir -p $(BINDIR)
+all: $(BINDIR) $(OBJDIR) $(TARGETS:%=$(BINDIR)/%)
 
-sim800_main: $(BINDIR)/sim800_main
-sim800_sms: $(BINDIR)/sim800_sms
-sim800_dtmf_tone: $(BINDIR)/sim800_dtmf_tone
-sim800_dtmf_02: $(BINDIR)/sim800_dtmf_02
-sim800_dtmf_single: $(BINDIR)/sim800_dtmf_single
-sim800_dtmf_detect: $(BINDIR)/sim800_dtmf_detect
-sim800_dtmf_file_03: $(BINDIR)/sim800_dtmf_file_03
-sim800_dtmf_old: $(BINDIR)/sim800_dtmf_old
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(BINDIR)/sim800_main: sim800Cpp/main.cc
-	$(CC) $(CFLAGS) -o $@ $<
+$(BINDIR)/sms_send: $(OBJDIR)/sms_send.o $(LIBOBJ)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
-$(BINDIR)/sim800_sms: sim800Cpp/single_call_sim800/sim800.cc
-	$(CC) $(CFLAGS) -o $@ $<
+$(BINDIR)/call_dtmf: $(OBJDIR)/call_dtmf.o $(LIBOBJ)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
-$(BINDIR)/sim800_dtmf_tone: sim800Cpp/dtmf_tone_01/sim800_dtmf_tone_date.cc
-	$(CC) $(CFLAGS) -o $@ $<
+$(BINDIR)/call: $(OBJDIR)/call.o $(LIBOBJ)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
-$(BINDIR)/sim800_dtmf_02: sim800Cpp/dtmf_02/dtmf_tone_02.cc
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BINDIR)/sim800_dtmf_single: sim800Cpp/dtmf_singgle/sim800_dtmf.cc
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BINDIR)/sim800_dtmf_detect: sim800Cpp/detect_tone_dtmf/sim800_dtmf_detect_tone.cc
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BINDIR)/sim800_dtmf_file_03: sim800Cpp/dtmf_tone_file_03/dtmf_tone_03.cc
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BINDIR)/sim800_dtmf_old: sim800Cpp/olds_sim800/sim800_dtmf_get_tone_date.cc
-	$(CC) $(CFLAGS) -o $@ $<
+$(OBJDIR) $(BINDIR):
+	mkdir -p $@
 
 clean:
-	rm -rf $(BINDIR)
+	rm -rf $(OBJDIR) $(BINDIR)
+
+run-sms: $(BINDIR)/sms_send
+	sudo $<
+
+run-call: $(BINDIR)/call
+	sudo $<
+
+run-dtmf: $(BINDIR)/call_dtmf
+	sudo $<
+
+.PHONY: all clean run-sms run-call run-dtmf

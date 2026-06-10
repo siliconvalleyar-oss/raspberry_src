@@ -1,45 +1,49 @@
----
-name: gsm
-description: Control de módulo GSM SIM800/SIM800L con Raspberry Pi (Bash + C++)
----
+# SIM800 GSM Module for Raspberry Pi
 
-# gsm — Skill de desarrollo
+Control a SIM800/SIM800L GSM module from a Raspberry Pi over serial UART.
 
-## Lenguajes y herramientas
-- Bash scripting
-- C++ (GCC)
-- Serial port (UART)
-- AT commands
+## Hardware
 
-## Estructura
-```
-gsm/
-├── sim800Bash/
-│   ├── sim800_init.sh      Inicialización del módulo
-│   ├── sim800_call.sh      Realizar llamada
-│   └── sim800_send_msj.sh  Enviar SMS
-├── sim800Cpp/
-│   ├── main.cc             Llamada + DTMF + hora
-│   ├── single_call_sim800/ Envío de SMS
-│   ├── dtmf_tone_01/       DTMF con respuesta horaria
-│   ├── dtmf_02/            DTMF con timeout
-│   ├── dtmf_singgle/       DTMF básico
-│   ├── detect_tone_dtmf/   DTMF línea por línea
-│   ├── dtmf_tone_file_03/  DTMF con depuración
-│   └── olds_sim800/        Versiones antiguas
-├── .gitignore
-├── README.md
-└── skills/gsm.md
-```
+- Raspberry Pi (any model with UART)
+- SIM800 / SIM800L GSM module
+- External 5V/2A power supply for the module
+- Level shifter (3.3V ↔ 5V) recommended
+- UART connection: GPIO14 TX → SIM RX, GPIO15 RX ← SIM TX
 
-## Compilación
+## Build
+
 ```bash
-g++ -o sim800_main sim800Cpp/main.cc
+cd /home/joy/src/git/gsm
+make -j4
 ```
 
-## Notas
-- Usar `-DDEBUG` para ver trazas de los comandos AT
-- El puerto serie es `/dev/serial0` a 9600 baudios
-- Requiere UART habilitada en `config.txt` (`enable_uart=1`)
-- Los scripts Bash y programas C++ necesitan `sudo` para acceder al puerto
-- Números de teléfono hardcodeados — reemplazar antes de usar
+## Programs
+
+- `sms_send` — Send an SMS via AT commands
+- `call` — Place a voice call
+- `call_dtmf` — Call with DTMF tone detection (press 5 for time, 3 to hang up)
+
+## Run
+
+```bash
+sudo ./bin/sms_send
+sudo ./bin/call
+sudo ./bin/call_dtmf
+```
+
+## Bash Scripts
+
+- `scripts/sim800_init.sh` — Initialize module, check SIM, set SMS mode
+- `scripts/sim800_call.sh` — Quick voice call
+- `scripts/sim800_send_msj.sh` — Quick SMS
+
+## Port
+
+`/dev/serial0` at 9600 baud, 8N1, no flow control.
+
+## Install Dependencies
+
+```bash
+sudo apt-get install minicom picocom
+```
+Puedes usar `picocom /dev/serial0 -b 9600` para probar comandos AT manualmente.

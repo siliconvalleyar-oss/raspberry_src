@@ -21,7 +21,7 @@ INCDIR   = include
 OBJDIR   = obj
 BINDIR   = bin
 
-TARGET   = $(BINDIR)/epd_demo
+TARGET   = $(BINDIR)/epd_app
 
 SRCS     = $(SRCDIR)/main.cpp \
            $(SRCDIR)/hV_HAL_Peripherals.cpp \
