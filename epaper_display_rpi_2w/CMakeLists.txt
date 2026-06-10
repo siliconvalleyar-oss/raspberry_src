@@ -11,7 +11,7 @@ endif()
 set(CMAKE_CXX_STANDARD 14)
 
 # Añadir todos los archivos fuente
-add_executable(app_epaper main.cc spi.cc epaper.cc)
+add_executable(epaperApp src/main.cpp src/spi.cpp src/epaper.cpp)
 
 # Configurar el enlace de bibliotecas, si necesitas alguna, como wiringPi
-target_link_libraries(app_epaper)
+target_link_libraries(epaperApp)

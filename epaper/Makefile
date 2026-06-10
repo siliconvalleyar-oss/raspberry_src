@@ -28,9 +28,11 @@ else
     APP = $(BIN_DIR)/$(DEFAULT_TARGET)
 endif
 
-.PHONY: all clean run
+EPD_CLAUDE_DIR := epd_rpi_claude
 
-all: $(APP)
+.PHONY: all clean run epd_claude
+
+all: $(APP) epd_claude
 
 # Compilar el binario final
 $(APP): $(OBJS) | $(BIN_DIR)
@@ -60,8 +62,14 @@ clean:
 	rm -rf $(OBJ_DIR) $(BIN_DIR)
 	rm -f log/*
 
+epd_claude:
+	$(MAKE) -C $(EPD_CLAUDE_DIR)
+
 run: $(APP)
 	sudo $<
+
+run-claude:
+	sudo $(EPD_CLAUDE_DIR)/bin/epd_demo
 
 # Incluir archivos de dependencias generados automáticamente
 -include $(OBJS:.o=.d)

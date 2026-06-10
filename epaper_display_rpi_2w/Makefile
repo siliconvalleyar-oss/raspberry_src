@@ -4,9 +4,9 @@ SRCDIR    := src
 INCDIR    := include
 OBJDIR    := obj
 BINDIR    := bin
-SRCS      := $(wildcard $(SRCDIR)/*.cc)
-OBJS      := $(patsubst $(SRCDIR)/%.cc, $(OBJDIR)/%.o, $(SRCS))
-TARGET    := $(BINDIR)/app_epaper
+SRCS      := $(wildcard $(SRCDIR)/*.cpp)
+OBJS      := $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
+TARGET    := $(BINDIR)/epaper_app
 
 .PHONY: all clean
 
@@ -16,7 +16,8 @@ $(TARGET): $(OBJS) | $(BINDIR)
 	$(CXX) -o $@ $^
 	@echo "Binario: $(TARGET)"
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cc | $(OBJDIR)
+# Cambiado .cc a .cpp
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 directories: $(OBJDIR) $(BINDIR)

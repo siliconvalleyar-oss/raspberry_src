@@ -1,0 +1,231 @@
+#include "../include/Game.h"
+#include "../include/Renderer.h"
+#include "../include/Sound.h"
+#include "../include/Physics.h"
+#include "../include/HardwareProfile.h"
+#include "../include/Graphics.h" 
+#include <unistd.h>
+#include <termios.h>
+#include <fcntl.h>
+#include <cstdio>
+#include <cmath>
+
+// ============================================================
+//  Funciones auxiliares para teclado no bloqueante
+// ============================================================
+static struct termios oldt, newt;
+
+static void initKeyboard() {
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+}
+
+static void restoreKeyboard() {
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+}
+
+static int kbhit() {
+    char ch;
+    int n = read(STDIN_FILENO, &ch, 1);
+    if (n > 0) {
+        ungetc(ch, stdin);
+        return 1;
+    }
+    return 0;
+}
+
+// ============================================================
+//  Implementación de Game
+// ============================================================
+
+Game::Game() : player(nullptr), running(true), autoPlay(true), coinFrame(0) {
+    player = new Player(32, 32);
+    entities.push_back(player);
+    entities.push_back(new Enemy(150, 150, EntityType::GOOMBA));
+    initKeyboard();
+}
+
+Game::~Game() {
+    for (auto e : entities) delete e;
+    restoreKeyboard();
+}
+
+void Game::handleInput() {
+
+//if (c == 'm' || c == 'M') autoPlay = !autoPlay;
+
+    if (kbhit()) {
+        char c = getchar();
+	if (c == 'm' || c == 'M') autoPlay = !autoPlay;
+        else if (c == 'a' || c == 'A') player->move(Direction::LEFT);
+        else if (c == 'd' || c == 'D') player->move(Direction::RIGHT);
+        else if (c == 'w' || c == 'W') player->jump();
+        else if (c == 'q' || c == 'Q') running = false;
+        else player->stopMove();
+    } else {
+        player->stopMove();
+    }
+}
+
+void Game::update(float dt) {
+    for (auto e : entities) {
+        if (e->active)
+            e->update(dt, level.tiles);
+    }
+
+    // Colisiones jugador-enemigo
+    for (auto e : entities) {
+        if (e->type == EntityType::GOOMBA && e->active) {
+            Enemy* enemy = static_cast<Enemy*>(e);
+            if (Physics::AABBvsAABB(player->getAABB(), enemy->getAABB())) {
+                if (player->vy > 0 && player->y + player->height < enemy->y + enemy->height/2) {
+                    enemy->stomp();
+                    player->vy = -3.0f;
+                } else {
+                    player->takeDamage();
+                }
+            }
+        }
+    }
+
+    // Eliminar enemigos inactivos
+    for (auto it = entities.begin(); it != entities.end(); ) {
+        if (!(*it)->active && (*it)->type != EntityType::PLAYER) {
+            delete *it;
+            it = entities.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    if (!player->active) running = false;
+
+
+
+if (autoPlay && player->active) {
+    player->move(Direction::RIGHT);
+    bool shouldJump = false;
+    float sensorX = player->x + player->width + 5;
+    float sensorY = player->y + player->height / 2;
+    int tileX = (int)(sensorX / TILE_SIZE);
+    int tileY = (int)(sensorY / TILE_SIZE);
+    if (tileX >= 0 && tileX < MAP_WIDTH && tileY >= 0 && tileY < MAP_HEIGHT) {
+        TileType tile = (TileType)level.tiles[tileX][tileY];
+        if (tile != TileType::EMPTY && tile != TileType::COIN_BRICK)
+            shouldJump = true;
+    }
+    for (auto e : entities) {
+        if (e->type == EntityType::GOOMBA && e->active) {
+            if (e->x > player->x && e->x < player->x + 50 &&
+                fabs(e->y - player->y) < 30) {
+                shouldJump = true;
+                break;
+            }
+        }
+    }
+    if (shouldJump) player->jump();
+}
+
+
+}
+
+
+
+void Game::redrawTilesInRect(int x, int y, int w, int h) {
+    int startCol = x / TILE_SIZE;
+    int endCol   = (x + w) / TILE_SIZE;
+    int startRow = y / TILE_SIZE;
+    int endRow   = (y + h) / TILE_SIZE;
+    
+    for (int row = startRow; row <= endRow; ++row) {
+        for (int col = startCol; col <= endCol; ++col) {
+            if (col >= 0 && col < MAP_WIDTH && row >= 0 && row < MAP_HEIGHT) {
+                TileType t = (TileType)level.tiles[col][row];
+                if (t != TileType::EMPTY) {
+                    Renderer::drawTile(col * TILE_SIZE, row * TILE_SIZE, t);
+                }
+            }
+        }
+    }
+}
+
+void Game::draw() {
+    // Para cada entidad activa, restaurar el fondo que ocupaba en el frame anterior
+    for (auto e : entities) {
+        if (!e->active) continue;
+        // Restaurar fondo en la posición anterior
+        int px = (int)e->prevX;
+        int py = (int)e->prevY;
+        int w = (int)e->width;
+        int h = (int)e->height;
+        
+        // Pintar cielo o tiles según corresponda
+        // (Versión simple: siempre cielo; la versión completa restauraría tiles)
+        Graphics::fill_rect(px, py, w, h, SKY_BLUE);
+        // Si el rectángulo intersecta tiles, habría que redibujar esos tiles...
+        // Por simplicidad, redibujamos los tiles afectados (opcional, pero mejora calidad)
+        redrawTilesInRect(px, py, w, h);
+    }
+    
+    // Dibujar entidades en sus posiciones actuales
+    for (auto e : entities) {
+        if (e->active) e->draw();
+    }
+    
+    // Actualizar posiciones previas para el próximo frame
+    for (auto e : entities) {
+        e->prevX = e->x;
+        e->prevY = e->y;
+    }
+    
+    // HUD (se redibuja siempre, es pequeño)
+    Renderer::drawText(2, 2, "MARIO", WHITE, 1);
+    Renderer::drawNumber(50, 2, player->coins, YELLOW);
+    Renderer::drawText(80, 2, "LIVES", WHITE);
+    Renderer::drawNumber(130, 2, player->lives, RED);
+}
+/*
+void Game::draw() {
+    Renderer::clearScreen(CYAN);   // o SKY_BLUE si prefieres
+    level.draw();
+    for (auto e : entities) e->draw();
+
+    // HUD
+    Renderer::drawText(2, 2, "MARIO", WHITE, 1);
+    Renderer::drawNumber(50, 2, player->coins, YELLOW);
+    Renderer::drawText(80, 2, "LIVES", WHITE);
+    Renderer::drawNumber(130, 2, player->lives, RED);
+}
+*/
+void Game::run() {
+    // Dibujar fondo una sola vez
+    Graphics::fill_screen(SKY_BLUE);
+    level.draw();
+    
+    const int frameDelay = 16;
+    while (running) {
+        handleInput();
+        update(frameDelay / 1000.0f);
+        draw();   // Aquí solo se dibujan entidades (sin borrar fondo completo)
+        delay_ms(frameDelay);
+    }
+    // ...
+}
+/*
+void Game::run() {
+    const int frameDelay = 16;  // ~60 FPS
+    while (running) {
+        handleInput();
+        update(frameDelay / 1000.0f);
+        draw();
+        delay_ms(frameDelay);
+    }
+
+    Renderer::clearScreen(BLACK);
+    Renderer::drawText(80, 100, "GAME OVER", RED, 2);
+    delay_ms(2000);
+}
+*/
